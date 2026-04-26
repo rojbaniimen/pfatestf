@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Pont H MOSFET – 24V 16A 350W</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1117; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 16px; }
+  h1 { text-align: center; font-size: 1.1rem; color: #7ec8e3; margin-bottom: 12px; letter-spacing: 1px; }
+  .controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  button {
+    padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px;
+    background: #1e2230; color: #aaa; border: 1px solid #333; transition: all 0.2s;
+  }
+  button.active { background: #1a6fa8; color: #fff; border-color: #2a9fd6; }
+  button:hover:not(.active) { background: #252a3a; color: #ddd; }
+  svg { display: block; margin: 0 auto; max-width: 100%; }
+  .info-bar {
+    text-align: center; margin-top: 10px; font-size: 0.82rem; color: #888;
+    background: #151820; border-radius: 6px; padding: 8px 12px;
+  }
+  .info-bar span { color: #7ec8e3; font-weight: 600; }
+  .bom { max-width: 700px; margin: 18px auto 0; }
+  .bom h2 { font-size: 0.9rem; color: #7ec8e3; margin-bottom: 8px; text-align: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { background: #1a1f2e; color: #aaa; padding: 6px 10px; border-bottom: 1px solid #2a2f40; }
+  td { padding: 5px 10px; border-bottom: 1px solid #1e2230; color: #ccc; }
+  tr:hover td { background: #1a1f2e; }
+</style>
+</head>
+<body>
+<h1>⚡ PONT H MOSFET — 24 V / 16 A / 350 W</h1>
+<div class="controls">
+  <button id="btn-fwd" onclick="setMode('fwd')">▶ Marche Avant</button>
+  <button id="btn-rev" onclick="setMode('rev')">◀ Marche Arrière</button>
+  <button id="btn-brk" onclick="setMode('brk')">⏹ Freinage</button>
+  <button id="btn-off" onclick="setMode('off')">○ Roue Libre</button>
+</div>
+
+<svg id="schematic" viewBox="0 0 700 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#f0a500"/>
+    </marker>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- +24V Rail -->
+  <line x1="80" y1="40" x2="620" y2="40" stroke="#e05252" stroke-width="3"/>
+  <text x="30" y="45" fill="#e05252" font-size="13" font-weight="bold">+24V</text>
+
+  <!-- GND Rail -->
+  <line x1="80" y1="440" x2="620" y2="440" stroke="#4a9e6a" stroke-width="3"/>
+  <text x="35" y="445" fill="#4a9e6a" font-size="13" font-weight="bold">GND</text>
+
+  <!-- === LEFT BRANCH === -->
+  <!-- Q1 (HS Left) -->
+  <rect id="q1" x="155" y="70" width="90" height="55" rx="5" fill="#1a2035" stroke="#444" stroke-width="1.5"/>
+  <text x="200" y="93" text-anchor="middle" fill="#ccc" font-size="11" font-weight="bold">Q1</text>
+  <text x="200" y="108" text-anchor="middle" fill="#888" font-size="9">IRFZ44N</text>
+  <text x="200" y="120" text-anchor="middle" fill="#7ec8e3" font-size="9">HS-L</text>
+
+  <!-- Q2 (LS Left) -->
+  <rect id="q2" x="155" y="355" width="90" height="55" rx="5" fill="#1a2035" stroke="#444" stroke-width="1.5"/>
+  <text x="200" y="378" text-anchor="middle" fill="#ccc" font-size="11" font-weight="bold">Q2</text>
+  <text x="200" y="393" text-anchor="middle" fill="#888" font-size="9">IRFZ44N</text>
+  <text x="200" y="405" text-anchor="middle" fill="#7ec8e3" font-size="9">LS-L</text>
+
+  <!-- === RIGHT BRANCH === -->
+  <!-- Q3 (HS Right) -->
+  <rect id="q3" x="455" y="70" width="90" height="55" rx="5" fill="#1a2035" stroke="#444" stroke-width="1.5"/>
+  <text x="500" y="93" text-anchor="middle" fill="#ccc" font-size="11" font-weight="bold">Q3</text>
+  <text x="500" y="108" text-anchor="middle" fill="#888" font-size="9">IRFZ44N</text>
+  <text x="500" y="120" text-anchor="middle" fill="#7ec8e3" font-size="9">HS-R</text>
+
+  <!-- Q4 (LS Right) -->
+  <rect id="q4" x="455" y="355" width="90" height="55" rx="5" fill="#1a2035" stroke="#444" stroke-width="1.5"/>
+  <text x="500" y="378" text-anchor="middle" fill="#ccc" font-size="11" font-weight="bold">Q4</text>
+  <text x="500" y="393" text-anchor="middle" fill="#888" font-size="9">IRFZ44N</text>
+  <text x="500" y="405" text-anchor="middle" fill="#7ec8e3" font-size="9">LS-R</text>
+
+  <!-- Wires: +24V to Q1, Q3 drain -->
+  <line x1="200" y1="40" x2="200" y2="70" stroke="#555" stroke-width="2"/>
+  <line x1="500" y1="40" x2="500" y2="70" stroke="#555" stroke-width="2"/>
+
+  <!-- Wires: Q2, Q4 source to GND -->
+  <line x1="200" y1="410" x2="200" y2="440" stroke="#555" stroke-width="2"/>
+  <line x1="500" y1="410" x2="500" y2="440" stroke="#555" stroke-width="2"/>
+
+  <!-- Node A (Q1 source / Q2 drain junction) -->
+  <line x1="200" y1="125" x2="200" y2="210" stroke="#555" stroke-width="2"/>
+  <line x1="200" y1="355" x2="200" y2="270" stroke="#555" stroke-width="2"/>
+  <circle cx="200" cy="240" r="4" fill="#7ec8e3"/>
+  <text x="178" y="244" fill="#7ec8e3" font-size="11" font-weight="bold">A</text>
+
+  <!-- Node B (Q3 source / Q4 drain junction) -->
+  <line x1="500" y1="125" x2="500" y2="210" stroke="#555" stroke-width="2"/>
+  <line x1="500" y1="355" x2="500" y2="270" stroke="#555" stroke-width="2"/>
+  <circle cx="500" cy="240" r="4" fill="#7ec8e3"/>
+  <text x="508" y="244" fill="#7ec8e3" font-size="11" font-weight="bold">B</text>
+
+  <!-- Motor -->
+  <rect x="265" y="205" width="170" height="70" rx="8" fill="#1a2a1a" stroke="#4a9e4a" stroke-width="2"/>
+  <text x="350" y="232" text-anchor="middle" fill="#6ecf6e" font-size="14" font-weight="bold">M</text>
+  <text x="350" y="252" text-anchor="middle" fill="#888" font-size="9">24V · 16A · 350W</text>
+  <text x="350" y="266" text-anchor="middle" fill="#666" font-size="8">DC Motor</text>
+  <!-- Motor connections -->
+  <line x1="200" y1="240" x2="265" y2="240" stroke="#555" stroke-width="2"/>
+  <line x1="500" y1="240" x2="435" y2="240" stroke="#555" stroke-width="2"/>
+
+  <!-- IR2104 Left Driver -->
+  <rect x="20" y="150" width="100" height="130" rx="5" fill="#1a1a2e" stroke="#3a3a5e" stroke-width="1.5"/>
+  <text x="70" y="172" text-anchor="middle" fill="#aaa" font-size="10" font-weight="bold">IR2104</text>
+  <text x="70" y="186" text-anchor="middle" fill="#666" font-size="8">Gate Driver L</text>
+  <text x="32" y="210" fill="#888" font-size="8">HIN</text>
+  <line x1="52" y1="207" x2="70" y2="207" stroke="#666" stroke-width="1"/>
+  <text x="32" y="240" fill="#888" font-size="8">LIN</text>
+  <line x1="52" y1="237" x2="70" y2="237" stroke="#666" stroke-width="1"/>
+  <text x="32" y="265" fill="#888" font-size="8">SD</text>
+  <line x1="48" y1="262" x2="70" y2="262" stroke="#666" stroke-width="1"/>
+  <!-- HO/LO outputs -->
+  <line x1="120" y1="207" x2="145" y2="207" stroke="#888" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="123" y="202" fill="#666" font-size="7">HO→Rg1</text>
+  <line x1="120" y1="237" x2="145" y2="237" stroke="#888" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="123" y="232" fill="#666" font-size="7">LO→Rg2</text>
+  <!-- Gate resistors Left -->
+  <rect id="rg1" x="145" y="200" width="14" height="14" rx="2" fill="#2a1a0a" stroke="#a06020" stroke-width="1.5"/>
+  <text x="152" y="212" text-anchor="middle" fill="#c08040" font-size="7">10Ω</text>
+  <rect id="rg2" x="145" y="230" width="14" height="14" rx="2" fill="#2a1a0a" stroke="#a06020" stroke-width="1.5"/>
+  <text x="152" y="242" text-anchor="middle" fill="#c08040" font-size="7">10Ω</text>
+  <!-- Rg1 to Q1 gate -->
+  <line x1="159" y1="207" x2="165" y2="207" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="165" y1="207" x2="165" y2="97" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="165" y1="97" x2="155" y2="97" stroke="#a06020" stroke-width="1.2"/>
+  <!-- Rg2 to Q2 gate -->
+  <line x1="159" y1="237" x2="168" y2="237" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="168" y1="237" x2="168" y2="382" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="168" y1="382" x2="155" y2="382" stroke="#a06020" stroke-width="1.2"/>
+
+  <!-- IR2104 Right Driver -->
+  <rect x="580" y="150" width="100" height="130" rx="5" fill="#1a1a2e" stroke="#3a3a5e" stroke-width="1.5"/>
+  <text x="630" y="172" text-anchor="middle" fill="#aaa" font-size="10" font-weight="bold">IR2104</text>
+  <text x="630" y="186" text-anchor="middle" fill="#666" font-size="8">Gate Driver R</text>
+  <text x="638" y="210" fill="#888" font-size="8">HIN</text>
+  <line x1="630" y1="207" x2="648" y2="207" stroke="#666" stroke-width="1"/>
+  <text x="638" y="240" fill="#888" font-size="8">LIN</text>
+  <line x1="630" y1="237" x2="648" y2="237" stroke="#666" stroke-width="1"/>
+  <text x="638" y="265" fill="#888" font-size="8">SD</text>
+  <line x1="630" y1="262" x2="648" y2="262" stroke="#666" stroke-width="1"/>
+  <!-- HO/LO outputs -->
+  <line x1="541" y1="207" x2="580" y2="207" stroke="#888" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="542" y="202" fill="#666" font-size="7">Rg3→HO</text>
+  <line x1="541" y1="237" x2="580" y2="237" stroke="#888" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="542" y="232" fill="#666" font-size="7">Rg4→LO</text>
+  <!-- Gate resistors Right -->
+  <rect id="rg3" x="527" y="200" width="14" height="14" rx="2" fill="#2a1a0a" stroke="#a06020" stroke-width="1.5"/>
+  <text x="534" y="212" text-anchor="middle" fill="#c08040" font-size="7">10Ω</text>
+  <rect id="rg4" x="527" y="230" width="14" height="14" rx="2" fill="#2a1a0a" stroke="#a06020" stroke-width="1.5"/>
+  <text x="534" y="242" text-anchor="middle" fill="#c08040" font-size="7">10Ω</text>
+  <!-- Rg3 to Q3 gate -->
+  <line x1="527" y1="207" x2="520" y2="207" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="520" y1="207" x2="520" y2="97" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="520" y1="97" x2="545" y2="97" stroke="#a06020" stroke-width="1.2"/>
+  <!-- Rg4 to Q4 gate -->
+  <line x1="527" y1="237" x2="524" y2="237" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="524" y1="237" x2="524" y2="382" stroke="#a06020" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="524" y1="382" x2="545" y2="382" stroke="#a06020" stroke-width="1.2"/>
+
+  <!-- Bulk cap C1 -->
+  <line x1="610" y1="40" x2="650" y2="40" stroke="#e05252" stroke-width="2"/>
+  <line x1="650" y1="40" x2="650" y2="90" stroke="#555" stroke-width="2"/>
+  <line x1="636" y1="90" x2="664" y2="90" stroke="#aaa" stroke-width="2.5"/>
+  <line x1="636" y1="97" x2="664" y2="97" stroke="#aaa" stroke-width="2.5"/>
+  <line x1="650" y1="97" x2="650" y2="145" stroke="#555" stroke-width="2"/>
+  <line x1="650" y1="145" x2="620" y2="145" stroke="#555" stroke-width="2"/>
+  <line x1="620" y1="145" x2="620" y2="440" stroke="#555" stroke-width="2"/>
+  <text x="655" y="115" fill="#aaa" font-size="9">C1</text>
+  <text x="655" y="126" fill="#666" font-size="8">1000µF</text>
+  <text x="655" y="137" fill="#666" font-size="8">50V</text>
+
+  <!-- MCU signals -->
+  <text x="350" y="16" text-anchor="middle" fill="#666" font-size="9">← Signaux PWM depuis MCU →</text>
+  <text x="70" y="145" text-anchor="middle" fill="#666" font-size="8">PWM_L</text>
+  <text x="630" y="145" text-anchor="middle" fill="#666" font-size="8">PWM_R</text>
+
+  <!-- Current flow paths (animated) -->
+  <!-- Forward: +24V → Q1 → A → Motor → B → Q4 → GND -->
+  <path id="path-fwd" d="M200,40 L200,70 M200,125 L200,240 L265,240 L435,240 L500,240 L500,355 L500,440"
+    stroke="#f0a500" stroke-width="3" fill="none" opacity="0"
+    marker-mid="url(#arr)" stroke-dasharray="8,4">
+    <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.4s" repeatCount="indefinite"/>
+  </path>
+  <!-- Reverse: +24V → Q3 → B → Motor → A → Q2 → GND -->
+  <path id="path-rev" d="M500,40 L500,70 M500,125 L500,240 L435,240 L265,240 L200,240 L200,355 L200,440"
+    stroke="#d06eff" stroke-width="3" fill="none" opacity="0"
+    stroke-dasharray="8,4">
+    <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.4s" repeatCount="indefinite"/>
+  </path>
+  <!-- Brake: circulating through Q2 and Q4 -->
+  <path id="path-brk" d="M265,240 L200,240 L200,355 L200,440 M435,240 L500,240 L500,355 L500,440"
+    stroke="#e05252" stroke-width="2.5" fill="none" opacity="0"
+    stroke-dasharray="6,3">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="0.5s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- MOSFET state indicators -->
+  <circle id="ind-q1" cx="240" cy="97" r="5" fill="#333"/>
+  <circle id="ind-q2" cx="240" cy="382" r="5" fill="#333"/>
+  <circle id="ind-q3" cx="450" cy="97" r="5" fill="#333"/>
+  <circle id="ind-q4" cx="450" cy="382" r="5" fill="#333"/>
+</svg>
+
+<div class="info-bar" id="info-bar">
+  Sélectionnez un mode de fonctionnement ci-dessus
+</div>
+
+<div class="bom">
+  <h2>📋 LISTE DES COMPOSANTS</h2>
+  <table>
+    <tr><th>Réf</th><th>Composant</th><th>Valeur / Référence</th><th>Qté</th></tr>
+    <tr><td>Q1–Q4</td><td>MOSFET N-ch</td><td>IRF3205 — 55V, 110A, 8mΩ</td><td>4</td></tr>
+    <tr><td>U1–U2</td><td>Gate Driver</td><td>IR2104 (half-bridge, bootstrap)</td><td>2</td></tr>
+    <tr><td>Rg1–Rg4</td><td>Résistance gate</td><td>10 Ω / 1 W</td><td>4</td></tr>
+    <tr><td>C_boot1–2</td><td>Bootstrap cap</td><td>100 nF / 25 V céramique</td><td>2</td></tr>
+    <tr><td>C1</td><td>Bulk cap</td><td>1000 µF / 50 V électrolytique</td><td>1</td></tr>
+    <tr><td>D_boot1–2</td><td>Diode bootstrap</td><td>UF4007 (rapide)</td><td>2</td></tr>
+  </table>
+</div>
+
+<script>
+const modes = {
+  fwd: {
+    q1: true, q2: false, q3: false, q4: true,
+    path: 'fwd',
+    info: '<span>Marche Avant</span> — Q1+Q4 passants · Courant A→B (moteur tourne ↻)',
+    color: '#f0a500'
+  },
+  rev: {
+    q1: false, q2: true, q3: true, q4: false,
+    path: 'rev',
+    info: '<span>Marche Arrière</span> — Q3+Q2 passants · Courant B→A (moteur tourne ↺)',
+    color: '#d06eff'
+  },
+  brk: {
+    q1: false, q2: true, q3: false, q4: true,
+    path: 'brk',
+    info: '<span>Freinage dynamique</span> — Q2+Q4 passants · Bornes A et B court-circuitées à GND',
+    color: '#e05252'
+  },
+  off: {
+    q1: false, q2: false, q3: false, q4: false,
+    path: null,
+    info: '<span>Roue libre</span> — Tous MOSFETs bloqués · Courant via diodes de corps',
+    color: '#888'
+  }
+};
+
+function setMode(mode) {
+  const m = modes[mode];
+  ['fwd','rev','brk'].forEach(p => {
+    document.getElementById('path-'+p).style.opacity = 0;
+  });
+  if (m.path) document.getElementById('path-'+m.path).style.opacity = 1;
+
+  const qs = {q1: m.q1, q2: m.q2, q3: m.q3, q4: m.q4};
+  for (const [id, on] of Object.entries(qs)) {
+    const rect = document.getElementById(id);
+    const ind = document.getElementById('ind-'+id);
+    rect.style.fill = on ? '#0d2a1a' : '#1a2035';
+    rect.style.stroke = on ? '#4aef8a' : '#444';
+    ind.style.fill = on ? '#4aef8a' : '#333';
+  }
+
+  document.getElementById('info-bar').innerHTML = m.info;
+
+  ['btn-fwd','btn-rev','btn-brk','btn-off'].forEach(b => {
+    document.getElementById(b).classList.remove('active');
+  });
+  document.getElementById('btn-'+mode).classList.add('active');
+}
+
+setMode('fwd');
+</script>
+</body>
+</html>
